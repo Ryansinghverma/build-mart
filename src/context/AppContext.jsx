@@ -2,13 +2,6 @@ import { createContext, useContext, useState, useEffect } from 'react'
 
 const AppContext = createContext(null)
 
-// Demo users for mock login
-const DEMO_USERS = {
-  contractor: { id: 'c1', name: 'Rajesh Kumar', phone: '9876543210', role: 'contractor', token: 'tok_contractor' },
-  dealer: { id: 'd1', name: 'Sharma Traders', phone: '9123456789', role: 'dealer', token: 'tok_dealer' },
-  admin: { id: 'a1', name: 'Admin User', phone: '9000000001', role: 'admin', token: 'tok_admin' },
-}
-
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null)
   const [cart, setCart] = useState([])
@@ -26,8 +19,16 @@ export function AppProvider({ children }) {
     setLoading(false)
   }, [])
 
-  const login = (phone, role) => {
-    const u = DEMO_USERS[role] || { ...DEMO_USERS.contractor, phone }
+  // Called after OTP is verified — receives the user object from the backend
+  const loginWithUser = (userData) => {
+    // Backend returns: { _id, name, phone, role, token }
+    const u = {
+      id: userData._id,
+      name: userData.name,
+      phone: userData.phone,
+      role: userData.role,
+      token: userData.token,
+    }
     setUser(u)
     localStorage.setItem('bm_user', JSON.stringify(u))
     return u
@@ -74,7 +75,10 @@ export function AppProvider({ children }) {
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0)
 
   return (
-    <AppContext.Provider value={{ user, login, logout, loading, cart, addToCart, updateCartQty, clearCart, cartTotal, cartCount }}>
+    <AppContext.Provider value={{
+      user, loginWithUser, logout, loading,
+      cart, addToCart, updateCartQty, clearCart, cartTotal, cartCount,
+    }}>
       {children}
     </AppContext.Provider>
   )
