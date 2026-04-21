@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://api.buildmart.in/v1'
+// VITE_API_URL should be set to: https://your-backend-domain.com/api
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -32,41 +33,41 @@ api.interceptors.response.use(
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 export const authAPI = {
-  sendOTP: (phone) => api.post('/auth/send-otp', { phone }),
+  sendOTP:   (phone)      => api.post('/auth/send-otp', { phone }),
   verifyOTP: (phone, otp) => api.post('/auth/verify-otp', { phone, otp }),
-  signup: (data) => api.post('/auth/signup', data),
+  signup:    (data)       => api.post('/auth/signup', data),
 }
 
 // ─── Products ──────────────────────────────────────────────────────────────
 export const productsAPI = {
-  getAll: (params) => api.get('/products', { params }),
-  getById: (id) => api.get(`/products/${id}`),
-  getCategories: () => api.get('/products/categories'),
+  getAll:       (params) => api.get('/products', { params }),
+  getById:      (id)     => api.get(`/products/${id}`),
+  getCategories:()       => api.get('/products/categories'),
 }
 
 // ─── Orders ────────────────────────────────────────────────────────────────
 export const ordersAPI = {
-  create: (data) => api.post('/orders', data),
-  getByUser: (userId, params) => api.get(`/orders/${userId}`, { params }),
-  getAll: (params) => api.get('/orders', { params }),
-  updateStatus: (id, status) => api.put(`/orders/${id}/status`, { status }),
-  assignDelivery: (id, data) => api.put(`/orders/${id}/delivery`, data),
+  create:         (data)        => api.post('/orders', data),
+  getByUser:      (userId, params) => api.get(`/orders/${userId}`, { params }),
+  getAll:         (params)      => api.get('/orders', { params }),
+  updateStatus:   (id, status)  => api.put(`/orders/${id}/status`, { status }),
+  assignDelivery: (id, data)    => api.put(`/orders/${id}/delivery`, data),
 }
 
 // ─── Dealer ────────────────────────────────────────────────────────────────
 export const dealerAPI = {
-  getListings: (dealerId) => api.get(`/dealer/${dealerId}/listings`),
-  updateListing: (data) => api.put('/dealer/listing', data),
-  getOrders: (dealerId) => api.get(`/dealer/${dealerId}/orders`),
-  acceptOrder: (id) => api.put(`/dealer/orders/${id}/accept`),
-  rejectOrder: (id) => api.put(`/dealer/orders/${id}/reject`),
+  getListings:   (dealerId) => api.get(`/dealer/${dealerId}/listings`),
+  updateListing: (data)     => api.put('/dealer/listing', data),
+  getOrders:     (dealerId) => api.get(`/dealer/${dealerId}/orders`),
+  acceptOrder:   (id)       => api.put(`/dealer/orders/${id}/accept`),
+  rejectOrder:   (id)       => api.put(`/dealer/orders/${id}/reject`),
 }
 
 // ─── Projects ──────────────────────────────────────────────────────────────
 export const projectsAPI = {
-  getAll: (userId) => api.get(`/projects/${userId}`),
-  create: (data) => api.post('/projects', data),
-  assignOrder: (projectId, orderId) => api.put(`/projects/${projectId}/orders`, { orderId }),
+  getAll:      (userId)              => api.get(`/projects/${userId}`),
+  create:      (data)                => api.post('/projects', data),
+  assignOrder: (projectId, orderId)  => api.put(`/projects/${projectId}/orders`, { orderId }),
 }
 
 export default api

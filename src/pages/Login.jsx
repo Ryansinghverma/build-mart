@@ -2,44 +2,47 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { Loader } from '../components/UI'
+import { authAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 export default function Login() {
-  const { login } = useApp()
+  const { loginWithUser } = useApp()
   const navigate = useNavigate()
   const [step, setStep] = useState(1) // 1=phone, 2=otp
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
-  const [role, setRole] = useState('contractor')
   const [loading, setLoading] = useState(false)
 
   const handleSendOTP = async (e) => {
     e.preventDefault()
     if (phone.length !== 10) return toast.error('Enter a valid 10-digit number')
     setLoading(true)
-    await new Promise(r => setTimeout(r, 800)) // mock delay
-    setLoading(false)
-    setStep(2)
-    toast.success('OTP sent! Use 1234 for demo.')
+    try {
+      await authAPI.sendOTP(phone)
+      setStep(2)
+      toast.success('OTP sent to your number!')
+    } catch (err) {
+      toast.error(err.message || 'Failed to send OTP')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleVerify = async (e) => {
     e.preventDefault()
     if (otp.length < 4) return toast.error('Enter the OTP')
     setLoading(true)
-    await new Promise(r => setTimeout(r, 600))
-    setLoading(false)
-    if (otp !== '1234') return toast.error('Invalid OTP. Use 1234 for demo.')
-    const user = login(phone, role)
-    toast.success(`Welcome, ${user.name}!`)
-    navigate(`/${user.role}/dashboard`, { replace: true })
+    try {
+      const userData = await authAPI.verifyOTP(phone, otp)
+      const user = loginWithUser(userData)
+      toast.success(`Welcome back, ${user.name}!`)
+      navigate(`/${user.role}/dashboard`, { replace: true })
+    } catch (err) {
+      toast.error(err.message || 'Invalid OTP')
+    } finally {
+      setLoading(false)
+    }
   }
-
-  const ROLES = [
-    { id: 'contractor', label: 'Contractor', desc: 'Buy materials', icon: '👷' },
-    { id: 'dealer',     label: 'Dealer',     desc: 'Sell materials', icon: '🏪' },
-    { id: 'admin',      label: 'Admin',      desc: 'Manage platform', icon: '⚙️' },
-  ]
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
@@ -57,25 +60,6 @@ export default function Login() {
               <div>
                 <h2 className="text-lg font-medium text-white mb-1">Sign in</h2>
                 <p className="text-sm text-slate-500">Enter your phone number to continue</p>
-              </div>
-
-              {/* Role selector */}
-              <div className="grid grid-cols-3 gap-2">
-                {ROLES.map(r => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setRole(r.id)}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-center transition-all ${
-                      role === r.id
-                        ? 'border-brand-500 bg-brand-500/10 text-white'
-                        : 'border-slate-700 text-slate-400 hover:border-slate-600'
-                    }`}
-                  >
-                    <span className="text-xl">{r.icon}</span>
-                    <span className="text-xs font-medium">{r.label}</span>
-                  </button>
-                ))}
               </div>
 
               <div>
@@ -119,11 +103,10 @@ export default function Login() {
                   maxLength={6}
                   value={otp}
                   onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="1 2 3 4"
+                  placeholder="• • • • • •"
                   className="input text-center text-2xl tracking-[0.5em] font-mono"
                   autoFocus
                 />
-                <p className="text-xs text-slate-600 mt-1 text-center">Demo OTP: 1234</p>
               </div>
 
               <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
