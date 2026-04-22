@@ -6,16 +6,16 @@ import { authAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 export default function Signup() {
-  const { loginWithUser } = useApp()
+  const { login } = useApp()
   const navigate = useNavigate()
+  const [step, setStep] = useState(1)   // 1=form, 2=otp
   const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState(1) // 1=form, 2=otp
-  const [userId, setUserId] = useState(null)
   const [otp, setOtp] = useState('')
   const [form, setForm] = useState({ name: '', phone: '', role: 'contractor', business: '' })
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  // Step 1 — create account & send OTP
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.name.trim()) return toast.error('Name is required')
@@ -23,15 +23,9 @@ export default function Signup() {
     if (!form.business.trim()) return toast.error('Business name is required')
     setLoading(true)
     try {
-      const res = await authAPI.signup({
-        name: form.name,
-        phone: form.phone,
-        role: form.role,
-        address: form.business,
-      })
-      setUserId(res.userId)
+      await authAPI.signup({ name: form.name, phone: form.phone, role: form.role, address: form.business })
       setStep(2)
-      toast.success('Account created! Enter the OTP to verify.')
+      toast.success('Account created! Check Railway logs for your OTP.')
     } catch (err) {
       toast.error(err.message || 'Signup failed')
     } finally {
@@ -39,13 +33,14 @@ export default function Signup() {
     }
   }
 
+  // Step 2 — verify OTP and log in
   const handleVerify = async (e) => {
     e.preventDefault()
     if (otp.length < 4) return toast.error('Enter the OTP')
     setLoading(true)
     try {
-      const userData = await authAPI.verifyOTP(form.phone, otp)
-      const user = loginWithUser(userData)
+      const user = await authAPI.verifyOTP(form.phone, otp)
+      login(user)
       toast.success(`Welcome, ${user.name}!`)
       navigate(`/${user.role}/dashboard`, { replace: true })
     } catch (err) {
@@ -67,7 +62,6 @@ export default function Signup() {
         <div className="card">
           {step === 1 ? (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Role */}
               <div>
                 <label className="label">I am a</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -88,13 +82,14 @@ export default function Signup() {
 
               <div>
                 <label className="label">Full name</label>
-                <input value={form.name} onChange={e => set('name', e.target.value)} className="input" placeholder="Rajesh Kumar" />
+                <input value={form.name} onChange={e => set('name', e.target.value)}
+                  className="input" placeholder="Rajesh Kumar" />
               </div>
 
               <div>
                 <label className="label">Business / Company name</label>
-                <input value={form.business} onChange={e => set('business', e.target.value)} className="input"
-                  placeholder={form.role === 'contractor' ? 'RK Constructions' : 'Sharma Traders'} />
+                <input value={form.business} onChange={e => set('business', e.target.value)}
+                  className="input" placeholder={form.role === 'contractor' ? 'RK Constructions' : 'Sharma Traders'} />
               </div>
 
               <div>
@@ -120,20 +115,16 @@ export default function Signup() {
           ) : (
             <form onSubmit={handleVerify} className="space-y-5">
               <div>
+                <button type="button" onClick={() => setStep(1)} className="text-slate-500 text-sm hover:text-white mb-2">← Back</button>
                 <h2 className="text-lg font-medium text-white">Verify your number</h2>
-                <p className="text-sm text-slate-500">OTP sent to +91 {form.phone}</p>
+                <p className="text-slate-500 text-sm">OTP sent to +91 {form.phone}</p>
               </div>
               <div>
                 <label className="label">One-time password</label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={otp}
+                <input type="text" maxLength={6} value={otp}
                   onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
                   placeholder="• • • • • •"
-                  className="input text-center text-2xl tracking-[0.5em] font-mono"
-                  autoFocus
-                />
+                  className="input text-center text-2xl tracking-[0.5em] font-mono" autoFocus />
               </div>
               <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
                 {loading ? <Loader size="sm" /> : null}
