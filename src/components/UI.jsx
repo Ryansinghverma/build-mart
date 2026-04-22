@@ -48,14 +48,17 @@ export function Modal({ open, onClose, title, children }) {
 
 // ─── ProductCard ─────────────────────────────────────────────────────────────
 export function ProductCard({ product, onAddToCart }) {
-  const lowestPrice = Math.min(...product.dealers.map(d => d.price))
-  const fastestDelivery = Math.min(...product.dealers.map(d => d.deliveryDays))
+  const dealers = product.dealers || []
+  const prices = dealers.map(d => d.price).filter(Boolean)
+  const lowestPrice = prices.length > 0 ? Math.min(...prices) : null
+  const deliveryDays = dealers.map(d => d.deliveryDays).filter(Boolean)
+  const fastestDelivery = deliveryDays.length > 0 ? Math.min(...deliveryDays) : null
 
   return (
     <div className="card hover:border-slate-700 transition-colors">
       <div className="flex items-start gap-3 mb-4">
         <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-          {product.image}
+          {product.image || '📦'}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-white truncate">{product.name}</h3>
@@ -63,30 +66,36 @@ export function ProductCard({ product, onAddToCart }) {
         </div>
       </div>
 
-      <div className="space-y-2 mb-4">
-        {product.dealers.map(dealer => (
-          <div key={dealer.id} className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
-            <div>
-              <p className="text-xs text-slate-400">{dealer.name}</p>
-              <p className="text-sm font-semibold text-white">₹{dealer.price.toLocaleString()}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-500">{dealer.deliveryDays}d delivery</p>
-              <button
-                onClick={() => onAddToCart(product, dealer.id, dealer.price)}
-                className="text-xs text-brand-400 hover:text-brand-300 font-medium mt-0.5 transition-colors"
-              >
-                Add to cart →
-              </button>
-            </div>
+      {dealers.length === 0 ? (
+        <div className="text-center py-4 text-slate-600 text-sm">No dealers listed yet</div>
+      ) : (
+        <>
+          <div className="space-y-2 mb-4">
+            {dealers.map(dealer => (
+              <div key={dealer._id || dealer.id} className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
+                <div>
+                  <p className="text-xs text-slate-400">{dealer.dealerId?.name || dealer.name}</p>
+                  <p className="text-sm font-semibold text-white">₹{dealer.price?.toLocaleString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">{dealer.deliveryTime || (dealer.deliveryDays ? `${dealer.deliveryDays}d` : '')} delivery</p>
+                  <button
+                    onClick={() => onAddToCart(product, dealer._id || dealer.id, dealer.price)}
+                    className="text-xs text-brand-400 hover:text-brand-300 font-medium mt-0.5 transition-colors"
+                  >
+                    Add to cart →
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-800">
-        <span>From ₹{lowestPrice.toLocaleString()}</span>
-        <span>Fastest: {fastestDelivery} day{fastestDelivery > 1 ? 's' : ''}</span>
-      </div>
+          <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-800">
+            <span>From ₹{lowestPrice?.toLocaleString()}</span>
+            {fastestDelivery && <span>Fastest: {fastestDelivery} day{fastestDelivery > 1 ? 's' : ''}</span>}
+          </div>
+        </>
+      )}
     </div>
   )
 }
