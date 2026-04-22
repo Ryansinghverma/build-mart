@@ -57,6 +57,7 @@ export const ordersAPI = {
 // ─── Dealer ────────────────────────────────────────────────────────────────
 export const dealerAPI = {
   getListings:   (dealerId) => api.get(`/dealer/${dealerId}/listings`),
+  createListing: (data)     => api.post('/listings', data),
   updateListing: (data)     => api.put('/dealer/listing', data),
   getOrders:     (dealerId) => api.get(`/dealer/${dealerId}/orders`),
   acceptOrder:   (id)       => api.put(`/dealer/orders/${id}/accept`),
