@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useApp } from '../../context/AppContext'
-import { Loader } from '../../components/UI'
-import { authAPI } from '../../services/api'
+import { useApp } from '../context/AppContext'
+import { Loader } from '../components/UI'
+import { authAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 export default function Login() {
