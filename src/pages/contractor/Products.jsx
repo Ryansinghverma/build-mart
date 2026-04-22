@@ -14,16 +14,19 @@ export default function Products() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    productsAPI.getAll()
-      .then(data => {
-        const list = Array.isArray(data) ? data : []
-        setProducts(list)
-        const cats = ['All', ...new Set(list.map(p => p.category).filter(Boolean))]
-        setCategories(cats)
-      })
-      .catch(() => toast.error('Failed to load products'))
-      .finally(() => setLoading(false))
-  }, [])
+  productsAPI.getAll()
+    .then(async data => {
+      const list = Array.isArray(data) ? data : []
+      const withDealers = await Promise.all(
+        list.map(p => productsAPI.getById(p._id).catch(() => ({ ...p, dealers: [] })))
+      )
+      setProducts(withDealers)
+      const cats = ['All', ...new Set(withDealers.map(p => p.category).filter(Boolean))]
+      setCategories(cats)
+    })
+    .catch(() => toast.error('Failed to load products'))
+    .finally(() => setLoading(false))
+}, [])
 
   const handleAdd = (product, dealerId, price) => {
     addToCart(product, dealerId, price)
