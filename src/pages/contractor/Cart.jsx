@@ -1,24 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { EmptyState, Modal } from '../../components/UI'
-import { MOCK_PROJECTS } from '../../utils/mockData'
+import { ordersAPI, projectsAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
 export default function Cart() {
-  const { cart, updateCartQty, clearCart, cartTotal } = useApp()
+  const { user, cart, updateCartQty, clearCart, cartTotal } = useApp()
   const navigate = useNavigate()
   const [placing, setPlacing] = useState(false)
-  const [projectModal, setProjectModal] = useState(false)
+  const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState('')
+
+  useEffect(() => {
+    if (!user?._id) return
+    projectsAPI.getAll(user._id)
+      .then(data => setProjects(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [user])
 
   const handlePlaceOrder = async () => {
     setPlacing(true)
-    await new Promise(r => setTimeout(r, 1000))
-    setPlacing(false)
-    clearCart()
-    toast.success('Order placed successfully!')
-    navigate('/contractor/orders')
+    try {
+      await ordersAPI.create({
+        items: cart,
+        total: cartTotal,
+        projectId: selectedProject || null
+      })
+      clearCart()
+      toast.success('Order placed successfully!')
+      navigate('/contractor/orders')
+    } catch (err) {
+      toast.error(err.message || 'Failed to place order')
+    } finally {
+      setPlacing(false)
+    }
   }
 
   if (cart.length === 0) {
@@ -46,7 +62,6 @@ export default function Cart() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
-        {/* Items */}
         <div className="lg:col-span-2 space-y-3">
           {cart.map(item => (
             <div key={item.key} className="card flex gap-4">
@@ -56,7 +71,7 @@ export default function Cart() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-white text-sm">{item.product.name}</p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {item.product.dealers.find(d => d.id === item.dealerId)?.name} ·
+                  {item.product.dealers?.find(d => d.id === item.dealerId)?.name} ·
                   ₹{item.dealerPrice} per {item.product.unit}
                 </p>
                 <div className="flex items-center justify-between mt-3">
@@ -78,7 +93,6 @@ export default function Cart() {
           ))}
         </div>
 
-        {/* Summary */}
         <div>
           <div className="card sticky top-0 space-y-4">
             <h2 className="font-medium text-white">Order Summary</h2>
@@ -99,7 +113,7 @@ export default function Cart() {
               <label className="label">Assign to project (optional)</label>
               <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)} className="input">
                 <option value="">No project</option>
-                {MOCK_PROJECTS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
               </select>
             </div>
 

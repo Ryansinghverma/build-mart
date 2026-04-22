@@ -1,15 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useApp } from '../../context/AppContext'
 import { StatusBadge, EmptyState } from '../../components/UI'
-import { MOCK_DEALER_ORDERS } from '../../utils/mockData'
+import { dealerAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
 export default function DealerOrders() {
-  const [orders, setOrders] = useState(MOCK_DEALER_ORDERS.filter(o => o.status !== 'delivered'))
+  const { user } = useApp()
+  const [orders, setOrders] = useState([])
   const [filter, setFilter] = useState('all')
+  const [loading, setLoading] = useState(true)
 
-  const updateStatus = (id, status) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
-    toast.success(status === 'accepted' ? 'Order accepted!' : 'Order rejected')
+  useEffect(() => {
+    if (!user?._id) return
+    dealerAPI.getOrders(user._id)
+      .then(data => setOrders(Array.isArray(data) ? data.filter(o => o.status !== 'delivered') : []))
+      .catch(() => toast.error('Failed to load orders'))
+      .finally(() => setLoading(false))
+  }, [user])
+
+  const updateStatus = async (id, action) => {
+    try {
+      if (action === 'accepted') await dealerAPI.acceptOrder(id)
+      else await dealerAPI.rejectOrder(id)
+      setOrders(prev => prev.map(o => o._id === id ? { ...o, status: action === 'accepted' ? 'accepted' : 'rejected' } : o))
+      toast.success(action === 'accepted' ? 'Order accepted!' : 'Order rejected')
+    } catch (err) {
+      toast.error(err.message || 'Action failed')
+    }
   }
 
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter)
@@ -32,7 +49,9 @@ export default function DealerOrders() {
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="card text-center py-16 text-slate-500">Loading orders...</div>
+      ) : filtered.length === 0 ? (
         <div className="card">
           <EmptyState icon="📥" title="No orders" description="New orders will appear here" />
         </div>
@@ -41,34 +60,34 @@ export default function DealerOrders() {
           {filtered.map(order => {
             const date = new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
             return (
-              <div key={order.id} className="card">
+              <div key={order._id} className="card">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-mono text-sm text-brand-400">#{order.id}</p>
+                      <p className="font-mono text-sm text-brand-400">#{order._id.slice(-6)}</p>
                       <StatusBadge status={order.status} />
                     </div>
-                    <p className="text-white font-medium mt-1">{order.contractor}</p>
+                    <p className="text-white font-medium mt-1">{order.userId?.name || 'Contractor'}</p>
                     <p className="text-xs text-slate-500">{date}</p>
                   </div>
-                  <p className="font-bold text-white text-lg">₹{order.total.toLocaleString()}</p>
+                  <p className="font-bold text-white text-lg">₹{order.total?.toLocaleString()}</p>
                 </div>
 
                 <div className="bg-slate-800 rounded-lg p-3 mb-3 space-y-1">
-                  {order.products.map((p, i) => (
+                  {(order.items || []).map((item, i) => (
                     <div key={i} className="flex justify-between text-sm">
-                      <span className="text-slate-300">{p.name}</span>
-                      <span className="text-slate-500">{p.qty} {p.unit}</span>
+                      <span className="text-slate-300">{item.product?.name || 'Product'}</span>
+                      <span className="text-slate-500">{item.quantity} {item.product?.unit}</span>
                     </div>
                   ))}
                 </div>
 
                 {order.status === 'pending' && (
                   <div className="flex gap-3">
-                    <button onClick={() => updateStatus(order.id, 'rejected')} className="btn-danger flex-1 text-sm">
+                    <button onClick={() => updateStatus(order._id, 'rejected')} className="btn-danger flex-1 text-sm">
                       ✕ Reject
                     </button>
-                    <button onClick={() => updateStatus(order.id, 'accepted')} className="btn-success flex-1 text-sm">
+                    <button onClick={() => updateStatus(order._id, 'accepted')} className="btn-success flex-1 text-sm">
                       ✓ Accept
                     </button>
                   </div>

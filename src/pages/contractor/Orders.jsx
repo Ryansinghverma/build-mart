@@ -1,14 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
-import { OrderCard, StatusBadge, EmptyState } from '../../components/UI'
-import { MOCK_ORDERS } from '../../utils/mockData'
+import { OrderCard, EmptyState } from '../../components/UI'
+import { ordersAPI } from '../../services/api'
+import toast from 'react-hot-toast'
 
 const STATUSES = ['all', 'pending', 'accepted', 'out_for_delivery', 'delivered']
 
 export default function ContractorOrders() {
   const { user } = useApp()
   const [filter, setFilter] = useState('all')
-  const orders = MOCK_ORDERS.filter(o => o.userId === user?.id)
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user?._id) return
+    ordersAPI.getByUser(user._id)
+      .then(data => setOrders(Array.isArray(data) ? data : []))
+      .catch(() => toast.error('Failed to load orders'))
+      .finally(() => setLoading(false))
+  }, [user])
+
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter)
 
   return (
@@ -18,7 +29,6 @@ export default function ContractorOrders() {
         <p className="text-slate-500 text-sm mt-1">{orders.length} total orders</p>
       </div>
 
-      {/* Filter tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {STATUSES.map(s => (
           <button key={s} onClick={() => setFilter(s)}
@@ -33,13 +43,15 @@ export default function ContractorOrders() {
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="card text-center py-16 text-slate-500">Loading orders...</div>
+      ) : filtered.length === 0 ? (
         <div className="card">
           <EmptyState icon="📋" title="No orders found" description="No orders match this filter" />
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(order => <OrderCard key={order.id} order={order} />)}
+          {filtered.map(order => <OrderCard key={order._id} order={order} />)}
         </div>
       )}
     </div>

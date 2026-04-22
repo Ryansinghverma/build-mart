@@ -19,19 +19,11 @@ export function AppProvider({ children }) {
     setLoading(false)
   }, [])
 
-  // Called after OTP is verified — receives the user object from the backend
-  const loginWithUser = (userData) => {
-    // Backend returns: { _id, name, phone, role, token }
-    const u = {
-      id: userData._id,
-      name: userData.name,
-      phone: userData.phone,
-      role: userData.role,
-      token: userData.token,
-    }
-    setUser(u)
-    localStorage.setItem('bm_user', JSON.stringify(u))
-    return u
+  // Accepts real user object from backend (has _id, name, phone, role, token)
+  const login = (userData) => {
+    setUser(userData)
+    localStorage.setItem('bm_user', JSON.stringify(userData))
+    return userData
   }
 
   const logout = () => {
@@ -43,7 +35,7 @@ export function AppProvider({ children }) {
 
   const addToCart = (product, dealerId, dealerPrice, quantity = 1) => {
     setCart(prev => {
-      const key = `${product.id}_${dealerId}`
+      const key = `${product._id || product.id}_${dealerId}`
       const existing = prev.find(i => i.key === key)
       let updated
       if (existing) {
@@ -75,10 +67,7 @@ export function AppProvider({ children }) {
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0)
 
   return (
-    <AppContext.Provider value={{
-      user, loginWithUser, logout, loading,
-      cart, addToCart, updateCartQty, clearCart, cartTotal, cartCount,
-    }}>
+    <AppContext.Provider value={{ user, login, logout, loading, cart, addToCart, updateCartQty, clearCart, cartTotal, cartCount }}>
       {children}
     </AppContext.Provider>
   )

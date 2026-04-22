@@ -1,25 +1,38 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { StatusBadge, Modal } from '../../components/UI'
-import { MOCK_ORDERS, STATUS_META } from '../../utils/mockData'
+import { ordersAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
 const ALL_STATUSES = ['pending', 'accepted', 'out_for_delivery', 'delivered']
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState(MOCK_ORDERS)
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [editModal, setEditModal] = useState(null)
   const [newStatus, setNewStatus] = useState('')
+
+  useEffect(() => {
+    ordersAPI.getAll()
+      .then(data => setOrders(Array.isArray(data) ? data : []))
+      .catch(() => toast.error('Failed to load orders'))
+      .finally(() => setLoading(false))
+  }, [])
 
   const openEdit = (order) => {
     setEditModal(order)
     setNewStatus(order.status)
   }
 
-  const handleUpdate = () => {
-    setOrders(prev => prev.map(o => o.id === editModal.id ? { ...o, status: newStatus } : o))
-    setEditModal(null)
-    toast.success('Order status updated')
+  const handleUpdate = async () => {
+    try {
+      await ordersAPI.updateStatus(editModal._id, newStatus)
+      setOrders(prev => prev.map(o => o._id === editModal._id ? { ...o, status: newStatus } : o))
+      setEditModal(null)
+      toast.success('Order status updated')
+    } catch (err) {
+      toast.error(err.message || 'Failed to update')
+    }
   }
 
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter)
@@ -42,48 +55,52 @@ export default function AdminOrders() {
         ))}
       </div>
 
-      <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-800">
-                <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Order</th>
-                <th className="text-left text-xs font-medium text-slate-500 px-5 py-3 hidden md:table-cell">Items</th>
-                <th className="text-left text-xs font-medium text-slate-500 px-5 py-3 hidden sm:table-cell">Dealer</th>
-                <th className="text-right text-xs font-medium text-slate-500 px-5 py-3">Amount</th>
-                <th className="text-center text-xs font-medium text-slate-500 px-5 py-3">Status</th>
-                <th className="text-right text-xs font-medium text-slate-500 px-5 py-3">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {filtered.map(order => {
-                const date = new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-                return (
-                  <tr key={order.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="px-5 py-3">
-                      <p className="font-mono text-sm text-brand-400">#{order.id}</p>
-                      <p className="text-xs text-slate-500">{date}</p>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-slate-400 hidden md:table-cell">
-                      {order.products[0]?.name}{order.products.length > 1 ? ` +${order.products.length - 1}` : ''}
-                    </td>
-                    <td className="px-5 py-3 text-sm text-slate-400 hidden sm:table-cell">{order.dealer}</td>
-                    <td className="px-5 py-3 text-right text-sm font-medium text-white">₹{order.total?.toLocaleString()}</td>
-                    <td className="px-5 py-3 text-center"><StatusBadge status={order.status} /></td>
-                    <td className="px-5 py-3 text-right">
-                      <button onClick={() => openEdit(order)} className="text-sm text-brand-400 hover:text-brand-300 transition-colors">
-                        Update
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+      {loading ? (
+        <div className="card text-center py-16 text-slate-500">Loading orders...</div>
+      ) : (
+        <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-800">
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Order</th>
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3 hidden md:table-cell">Items</th>
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3 hidden sm:table-cell">Contractor</th>
+                  <th className="text-right text-xs font-medium text-slate-500 px-5 py-3">Amount</th>
+                  <th className="text-center text-xs font-medium text-slate-500 px-5 py-3">Status</th>
+                  <th className="text-right text-xs font-medium text-slate-500 px-5 py-3">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {filtered.map(order => {
+                  const date = new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                  return (
+                    <tr key={order._id} className="hover:bg-slate-800/50 transition-colors">
+                      <td className="px-5 py-3">
+                        <p className="font-mono text-sm text-brand-400">#{order._id.slice(-6)}</p>
+                        <p className="text-xs text-slate-500">{date}</p>
+                      </td>
+                      <td className="px-5 py-3 text-sm text-slate-400 hidden md:table-cell">
+                        {order.items?.[0]?.product?.name || 'Item'}{order.items?.length > 1 ? ` +${order.items.length - 1}` : ''}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-slate-400 hidden sm:table-cell">{order.userId?.name || '—'}</td>
+                      <td className="px-5 py-3 text-right text-sm font-medium text-white">₹{order.total?.toLocaleString()}</td>
+                      <td className="px-5 py-3 text-center"><StatusBadge status={order.status} /></td>
+                      <td className="px-5 py-3 text-right">
+                        <button onClick={() => openEdit(order)} className="text-sm text-brand-400 hover:text-brand-300 transition-colors">
+                          Update
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
-      <Modal open={!!editModal} onClose={() => setEditModal(null)} title={`Update Order #${editModal?.id}`}>
+      <Modal open={!!editModal} onClose={() => setEditModal(null)} title={`Update Order #${editModal?._id?.slice(-6)}`}>
         <div className="space-y-4">
           <div>
             <p className="text-sm text-slate-400 mb-1">Current status</p>
