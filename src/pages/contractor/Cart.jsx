@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
-import { EmptyState, Modal } from '../../components/UI'
+import { EmptyState } from '../../components/UI'
 import { ordersAPI, projectsAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
@@ -23,7 +23,12 @@ export default function Cart() {
     setPlacing(true)
     try {
       await ordersAPI.create({
-        items: cart,
+        items: cart.map(item => ({
+          productId: item.product._id || item.product.id,
+          dealerId: item.dealerId,
+          quantity: item.quantity,
+          price: item.dealerPrice,
+        })),
         total: cartTotal,
         projectId: selectedProject || null
       })
@@ -66,12 +71,11 @@ export default function Cart() {
           {cart.map(item => (
             <div key={item.key} className="card flex gap-4">
               <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
-                {item.product.image}
+                {item.product.image || '📦'}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-white text-sm">{item.product.name}</p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {item.product.dealers?.find(d => d.id === item.dealerId)?.name} ·
                   ₹{item.dealerPrice} per {item.product.unit}
                 </p>
                 <div className="flex items-center justify-between mt-3">
