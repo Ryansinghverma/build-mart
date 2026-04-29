@@ -31,19 +31,26 @@ export default function AdminDelivery() {
     const existing = assignments[order._id]
     setForm({ driverId: existing?.driverId || '', eta: existing?.eta || '' })
   }
-
-  const handleAssign = async (e) => {
-    e.preventDefault()
-    if (!form.driverId) return toast.error('Select a driver')
-    if (!form.eta) return toast.error('Set an ETA')
-    try {
-      await ordersAPI.assignDelivery(modal._id, { driverId: form.driverId, eta: form.eta })
-      setAssignments(prev => ({ ...prev, [modal._id]: { ...form } }))
-      setModal(null)
-      toast.success('Driver assigned!')
-    } catch (err) {
-      toast.error(err.message || 'Failed to assign')
-    }
+const handleAssign = async () => {
+  if (!form.driverId) return toast.error('Select a driver')
+  if (!form.eta) return toast.error('Set an ETA')
+  const driver = DRIVERS.find(d => d.id === form.driverId)
+  try {
+    await ordersAPI.assignDelivery(modal._id, {
+      driverName:  driver.name,
+      vehicleType: driver.vehicle,
+      eta:         form.eta,
+    })
+    setAssignments(prev => ({ ...prev, [modal._id]: { ...form } }))
+    setOrders(prev => prev.map(o =>
+      o._id === modal._id ? { ...o, status: 'out_for_delivery' } : o
+    ))
+    setModal(null)
+    toast.success('Driver assigned!')
+  } catch (err) {
+    toast.error(err.message || 'Failed to assign')
+  }
+}
   }
 
   return (
