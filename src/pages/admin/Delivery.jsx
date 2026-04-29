@@ -31,7 +31,8 @@ export default function AdminDelivery() {
     const existing = assignments[order._id]
     setForm({ driverId: existing?.driverId || '', eta: existing?.eta || '' })
   }
-const handleAssign = async () => {
+const handleAssign = async (e) => {
+  e.preventDefault()
   if (!form.driverId) return toast.error('Select a driver')
   if (!form.eta) return toast.error('Set an ETA')
   const driver = DRIVERS.find(d => d.id === form.driverId)
@@ -51,7 +52,7 @@ const handleAssign = async () => {
     toast.error(err.message || 'Failed to assign')
   }
 }
-  }
+
 
   return (
     <div className="space-y-5">
