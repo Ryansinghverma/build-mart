@@ -51,7 +51,7 @@ export const ordersAPI = {
   getByUser:      (userId, params) => api.get(`/orders/${userId}`, { params }),
   getAll:         (params)      => api.get('/orders', { params }),
   updateStatus:   (id, status)  => api.put(`/orders/${id}/status`, { status }),
-  assignDelivery: (id, data)    => api.put(`/orders/${id}/delivery`, data),
+  assignDelivery: (orderId, data) => api.post('/delivery/assign', { orderId, ...data }),
 }
 
 // ─── Dealer ────────────────────────────────────────────────────────────────
